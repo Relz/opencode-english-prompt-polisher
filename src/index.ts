@@ -1,8 +1,15 @@
-import type { PluginModule } from '@opencode-ai/plugin';
+import { Plugin } from '@opencode/plugin/effect';
+import { Effect } from 'effect';
 
-import { server } from './server.ts';
+import { createEffectContext } from './effect-context.ts';
+import { setup, type OpenCodeContext } from './server.ts';
 
-export default {
+export default Plugin.define({
 	id: 'opencode-english-prompt-polisher',
-	server,
-} satisfies PluginModule;
+	effect: (ctx) =>
+		Effect.gen(function* () {
+			const context: OpenCodeContext = yield* createEffectContext(ctx);
+			const cleanup: Awaited<ReturnType<typeof setup>> = yield* Effect.promise(() => setup(context));
+			yield* Effect.addFinalizer(() => Effect.promise(() => Promise.resolve(cleanup())));
+		}),
+});

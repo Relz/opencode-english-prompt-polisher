@@ -1,8 +1,10 @@
 import {
 	handlePromptProposal,
+	writeProposal,
 	type ChatMessageInput,
 	type ChatMessageOutput,
 	type PolisherResult,
+	type ProposalOutputResult,
 	type WriteLog,
 } from 'english-prompt-polisher';
 
@@ -21,6 +23,7 @@ export function createPromptProposalExecutor(
 	options: OpenCodeOptions,
 	runCheckPrompt: RunCheckPrompt,
 	writeLog: WriteLog,
+	signal?: AbortSignal,
 ): RunPromptProposal {
 	const { mode, ...proposalOptions } = options;
 	void mode;
@@ -34,6 +37,10 @@ export function createPromptProposalExecutor(
 			await handlePromptProposal(coreInput, output, proposalOptions, {
 				checkPrompt: async (checkerInput, _checkerOptions, prompt): Promise<PolisherResult> => {
 					return await runCheckPrompt(checkerInput, prompt);
+				},
+				writeProposal: async (record, outputOptions): Promise<ProposalOutputResult> => {
+					signal?.throwIfAborted();
+					return await writeProposal(record, outputOptions);
 				},
 				log: writeLog,
 			});

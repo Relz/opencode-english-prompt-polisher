@@ -1,1 +1,1 @@
-export { checkPrompt, type CheckerClient } from './check-prompt.ts';
+export { createCheckerService, type CheckerContext, type CheckerService } from './service.ts';

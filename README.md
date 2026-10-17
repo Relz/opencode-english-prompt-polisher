@@ -2,7 +2,7 @@
 
 OpenCode plugin that checks each user prompt and writes a polished English proposal when the prompt is not English or needs English cleanup.
 
-The checker uses OpenCode's configured model/auth by creating a temporary OpenCode session. Proposal mode runs the check asynchronously; rewrite mode waits for it before OpenCode continues.
+The checker uses OpenCode's configured model/auth by creating a temporary OpenCode session.
 
 ## Features
 
@@ -11,28 +11,21 @@ The checker uses OpenCode's configured model/auth by creating a temporary OpenCo
 - Polishes grammatically incorrect or unclear English prompts.
 - Writes proposals to `~/opencode-english-prompt-polisher.md` by default.
 - Optionally creates one Notion database entry per proposal.
-- Skips its own internal checker prompts to avoid recursion.
 - Deletes temporary checker sessions by default.
 
-## Reusable Core
-
-Reusable prompt-polishing logic lives in the `english-prompt-polisher` package. This package keeps only the OpenCode adapter: hook wiring, message dedupe, mode dispatch, rewrite mutation, background scheduling, temporary checker sessions, OpenCode logging, and OpenCode-specific checker options.
-
-OpenCode-specific hook, session, and logging code lives directly under `src/`.
+Powered by [english-prompt-polisher](https://www.npmjs.com/package/english-prompt-polisher), with OpenCode-specific integration provided by this plugin.
 
 ## Install From npm
-
-This repository depends on the npm package `english-prompt-polisher` for reusable prompt-polishing logic.
 
 Add the plugin to your OpenCode config:
 
 ```jsonc
 {
 	"$schema": "https://opencode.ai/config.json",
-	"plugin": [
-		[
-			"opencode-english-prompt-polisher",
-			{
+	"plugins": [
+		{
+			"package": "opencode-english-prompt-polisher",
+			"options": {
 				"mode": "proposal",
 				"outputFile": "~/opencode-english-prompt-polisher.md",
 				"checker": {
@@ -46,12 +39,10 @@ Add the plugin to your OpenCode config:
 					"databaseId": "{env:ENGLISH_PROMPT_POLISHER_NOTION_DATABASE_ID}",
 				},
 			},
-		],
+		},
 	],
 }
 ```
-
-Restart OpenCode after changing config. OpenCode loads plugins only at startup.
 
 ## Options
 
@@ -59,10 +50,10 @@ Restart OpenCode after changing config. OpenCode loads plugins only at startup.
 | ----------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `mode`                  | `proposal`                              | Use `proposal` to write suggestions in the background, or `rewrite` to replace the user prompt before OpenCode sends it to the model. |
 | `outputFile`            | `~/opencode-english-prompt-polisher.md` | Markdown file that receives proposals.                                                                                                |
-| `maxChars`              | `4000`                                  | Maximum prompt characters sent to the checker. In `rewrite` mode, longer prompts are left unchanged.                                  |
+| `maxChars`              | unset (no limit)                        | Maximum prompt length in Unicode code points. Longer prompts are skipped in both modes.                                               |
 | `includeOriginal`       | `true`                                  | Include the original prompt in the Markdown output.                                                                                   |
 | `checker.agent`         | `general`                               | OpenCode agent used for the temporary checker session.                                                                                |
-| `checker.model`         | `current`                               | Use the current message model, or set `provider/model`.                                                                               |
+| `checker.model`         | `current`                               | Use the current session model, or set `provider/model`.                                                                               |
 | `checker.deleteSession` | `true`                                  | Delete temporary checker sessions after each check.                                                                                   |
 | `notion.enabled`        | `false`                                 | Create Notion database entries.                                                                                                       |
 | `notion.token`          | unset                                   | Notion integration token.                                                                                                             |
@@ -76,22 +67,23 @@ Set `mode` to `rewrite` when OpenCode should receive the polished prompt instead
 ```jsonc
 {
 	"$schema": "https://opencode.ai/config.json",
-	"plugin": [
-		[
-			"opencode-english-prompt-polisher",
-			{
+	"plugins": [
+		{
+			"package": "opencode-english-prompt-polisher",
+			"options": {
 				"mode": "rewrite",
 				"checker": {
 					"agent": "general",
 					"model": "current",
 				},
 			},
-		],
+		},
 	],
 }
 ```
 
 Rewrite mode waits for the checker before OpenCode continues. If the checker fails or decides no rewrite is needed, the original prompt is left unchanged.
+Rewrite mode does not write Markdown or Notion proposals.
 
 ## Notion Setup
 
@@ -148,8 +140,7 @@ Create a plugin for OpenCode.
 ## Notes
 
 - In `proposal` mode, the original user prompt is not modified or blocked.
-- In `rewrite` mode, the user prompt is modified in place before OpenCode sends it to the model.
-- Proposal output is written as supporting output for the user to review only in `proposal` mode.
+- In `rewrite` mode, the polished prompt replaces the original text in session history and is sent to the model. File, agent, and skill attachments are preserved.
 - If the checker or Notion write fails, the plugin logs a warning and lets the original prompt continue.
-- Prompt checking runs in the background only in `proposal` mode, so proposals can appear after OpenCode has already started responding.
+- In `proposal` mode, proposals can appear after OpenCode has already started responding.
 - Because every prompt requires an extra OpenCode model call, this plugin can increase token usage.

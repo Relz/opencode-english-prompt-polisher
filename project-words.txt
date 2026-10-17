@@ -6,5 +6,8 @@ esbenp
 esto
 opencode
 openrouter
+aisdk
+websearch
+worktree
 плагин
 Создай

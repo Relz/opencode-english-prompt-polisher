@@ -1,38 +1,24 @@
-import {
-	type ChatMessageInput,
-	type ChatMessageOutput,
-	type PolisherResult,
-	type WriteLog,
-} from 'english-prompt-polisher';
+import { type ChatMessageInput, type PolisherResult, type WriteLog } from 'english-prompt-polisher';
 
-import { checkPrompt, type CheckerClient } from './checker/index.ts';
-import { createOpenCodeLog, type OpenCodeLogClient } from './log.ts';
-import type { PromptModeRunners } from './prompt-mode-message-handler.ts';
-import { createBackgroundProposalRunner } from './prompt-runners/proposal-background.ts';
-import { createPromptProposalExecutor } from './prompt-runners/proposal.ts';
-import { createRewriteRunner } from './prompt-runners/rewrite.ts';
-import type { SessionLookupClient } from './session-filter.ts';
-import type { OpenCodeChatMessageInput, OpenCodeOptions } from './types.ts';
+import { createPromptProposalExecutor, type RunPromptProposal } from './prompt-runners/proposal.ts';
+import { createRewriteRunner, type RunPromptRewrite } from './prompt-runners/rewrite.ts';
+import type { OpenCodeOptions } from './types.ts';
 
-export type OpenCodeClient = CheckerClient & OpenCodeLogClient & SessionLookupClient;
-
-export type OpenCodePromptRunners = PromptModeRunners<OpenCodeChatMessageInput, ChatMessageOutput>;
+export type OpenCodePromptRunners = {
+	propose: RunPromptProposal;
+	rewrite: RunPromptRewrite;
+};
 
 export type RunCheckPrompt = (coreInput: ChatMessageInput, prompt: string) => Promise<PolisherResult>;
 
-export function createOpenCodePromptRunners(
-	client: OpenCodeClient,
+export function createPromptRunners(
 	options: OpenCodeOptions,
-	directory?: string,
+	runCheckPrompt: RunCheckPrompt,
+	writeLog: WriteLog,
+	signal?: AbortSignal,
 ): OpenCodePromptRunners {
-	const writeLog: WriteLog = createOpenCodeLog(client);
-
-	const runCheckPrompt = async (coreInput: ChatMessageInput, prompt: string): Promise<PolisherResult> => {
-		return await checkPrompt(client, coreInput, options, prompt, directory);
-	};
-
 	return {
-		propose: createBackgroundProposalRunner(createPromptProposalExecutor(options, runCheckPrompt, writeLog)),
+		propose: createPromptProposalExecutor(options, runCheckPrompt, writeLog, signal),
 		rewrite: createRewriteRunner(options, runCheckPrompt, writeLog),
 	};
 }

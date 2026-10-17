@@ -1,6 +1,10 @@
-import type { ChatModel, CheckerOptions, NotionOptions } from 'english-prompt-polisher';
+import type { ChatModel, CheckerOptions, NotionOptions, PromptHandlingMode } from 'english-prompt-polisher';
 
-export type PromptMode = 'proposal' | 'rewrite';
+export type PromptMode = PromptHandlingMode;
+
+export type OpenCodeChatModel = ChatModel & {
+	variant?: string;
+};
 
 export type OpenCodeCheckerModel = ChatModel | 'current';
 
@@ -22,5 +26,5 @@ export type OpenCodeOptions = {
 export type OpenCodeChatMessageInput = {
 	sessionID: string;
 	messageID?: string;
-	model?: ChatModel;
+	model?: OpenCodeChatModel;
 };

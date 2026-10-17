@@ -1,4 +1,4 @@
-import type { PluginOptions } from '@opencode-ai/plugin';
+import type { PluginOptions } from '@opencode/plugin';
 import { normalizeOptions, type NormalizedOptions } from 'english-prompt-polisher';
 
 import { normalizeCheckerOptions } from './options/checker.ts';
@@ -8,18 +8,11 @@ export { checkerOptions } from './options/checker.ts';
 
 export const DEFAULT_OUTPUT_FILE: string = '~/opencode-english-prompt-polisher.md';
 
-export function promptModeOption(value: unknown): PromptMode | undefined {
-	return value === 'proposal' || value === 'rewrite' ? value : undefined;
-}
-
-export function resolvePromptMode(options: Pick<OpenCodeOptions, 'mode'>): PromptMode {
-	return options.mode === 'rewrite' ? 'rewrite' : 'proposal';
-}
-
 export function normalizeOpenCodeOptions(rawOptions?: PluginOptions): OpenCodeOptions {
-	const coreOptions: NormalizedOptions = normalizeOptions(rawOptions, { outputFile: DEFAULT_OUTPUT_FILE });
+	const coreOptions: NormalizedOptions = normalizeOptions(rawOptions, {
+		outputFile: DEFAULT_OUTPUT_FILE,
+	});
 	const checker: OpenCodeCheckerOptions | undefined = normalizeCheckerOptions(rawOptions?.checker);
-	const mode: PromptMode | undefined = promptModeOption(rawOptions?.mode);
 	const options: OpenCodeOptions = { outputFile: coreOptions.outputFile ?? DEFAULT_OUTPUT_FILE };
 
 	if (coreOptions.maxChars !== undefined) {
@@ -28,8 +21,8 @@ export function normalizeOpenCodeOptions(rawOptions?: PluginOptions): OpenCodeOp
 	if (coreOptions.includeOriginal !== undefined) {
 		options.includeOriginal = coreOptions.includeOriginal;
 	}
-	if (mode !== undefined) {
-		options.mode = mode;
+	if (coreOptions.mode !== undefined) {
+		options.mode = coreOptions.mode;
 	}
 	if (checker !== undefined) {
 		options.checker = checker;
@@ -42,5 +35,5 @@ export function normalizeOpenCodeOptions(rawOptions?: PluginOptions): OpenCodeOp
 }
 
 export function modeOption(options: OpenCodeOptions): PromptMode {
-	return resolvePromptMode(options);
+	return options.mode ?? 'proposal';
 }
